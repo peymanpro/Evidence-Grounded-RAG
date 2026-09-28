@@ -1,0 +1,14 @@
+[
+  {
+    "query": "How does distributed rate limiting work?",
+    "relevant_chunk_ids": ["rate-limit:0"]
+  },
+  {
+    "query": "Which component handles authentication?",
+    "relevant_chunk_ids": ["auth:0"]
+  },
+  {
+    "query": "How are search results ranked?",
+    "relevant_chunk_ids": ["search:0"]
+  }
+]
