@@ -4,9 +4,9 @@ A research-oriented RAG system focused on retrieving reliable evidence, groundin
 
 ## Current status
 
-**Core retrieval foundation is implemented.**
+**Portfolio-ready RAG MVP is implemented.**
 
-The repository now has ingestion, chunking, lexical retrieval, an embedding boundary with a deterministic local baseline, vector search, hybrid rank fusion, evidence/context construction, retrieval metrics, grounded-generation boundaries, tests, and CI.
+The system now covers the full architectural path from ingestion and hybrid retrieval through reranking, evidence selection, citation verification, grounded generation adapters, evaluation, persistence, and an HTTP API. Production deployment still depends on choosing and operating external embedding/LLM infrastructure and an evaluated real knowledge corpus.
 
 ## Roadmap
 
@@ -30,52 +30,58 @@ The repository now has ingestion, chunking, lexical retrieval, an embedding boun
 ### Phase 2 — Embeddings and Index
 - [x] Embedding provider boundary
 - [x] Deterministic local embedding baseline
+- [x] OpenAI-compatible embedding adapter
 - [x] Vector search boundary
-- [ ] Production embedding provider
-- [ ] Persistent vector database
-- [ ] Repeatable, idempotent indexing
+- [x] Persistent SQLite vector store
+- [x] Repeatable upsert semantics
+- [ ] Managed/vector-database deployment adapter
 
 ### Phase 3 — Retrieval
 - [x] Lexical retrieval baseline
 - [x] Semantic retrieval baseline
 - [x] Hybrid retrieval
-- [ ] Production-grade reranking
+- [x] Second-stage reranking boundary and deterministic implementation
 - [x] Retrieval evidence and scores
-- [x] Initial evaluation metrics
-- [ ] Versioned retrieval benchmark
+- [x] Retrieval evaluation metrics
+- [x] Benchmark dataset format
+- [ ] Cross-encoder reranker
 
 ### Phase 4 — Grounded Generation
 - [x] Evidence selection
 - [x] Citation-ready context
 - [x] Grounded prompt boundary
-- [ ] Production LLM provider
-- [ ] Citation verification
-- [ ] Insufficient-evidence / abstention policy
-- [ ] Grounding evaluation
+- [x] OpenAI-compatible LLM adapter
+- [x] Citation verification
+- [x] Explicit insufficient-evidence path
+- [ ] Model-specific grounding benchmark
 
 ### Phase 5 — Evaluation
-- [x] Retrieval metric implementation
-- [ ] Representative benchmark dataset
-- [ ] Retrieval strategy comparison
-- [ ] Citation/evidence coverage metrics
-- [ ] End-to-end answer evaluation
+- [x] Recall@k
+- [x] Precision@k
+- [x] Reciprocal rank
+- [x] nDCG@k
+- [x] Representative benchmark format
+- [ ] Measured benchmark report on a real corpus
 - [ ] Latency and cost tracking
 - [ ] Failure-case analysis
 
 ### Phase 6 — Application
-- [ ] API
-- [ ] Minimal UI
-- [ ] Evidence display
+- [x] HTTP API
+- [x] Health endpoint
+- [x] Ask endpoint with citation metadata
+- [x] Minimal runnable server example
+- [ ] Browser UI
+- [ ] End-to-end production corpus ingestion
 - [ ] Pipeline observability
-- [ ] End-to-end tests
 
 ### Phase 7 — Hardening
-- [ ] Security and input boundaries
-- [ ] Prompt-injection review
-- [ ] Error handling
-- [ ] Reproducibility
-- [ ] Deployment documentation
-- [ ] Production-oriented example
+- [x] Security boundaries documented
+- [x] Prompt-injection boundary documented
+- [x] Deployment documentation
+- [x] Provider configuration through environment variables
+- [ ] Authentication and rate limiting
+- [ ] Production monitoring and backups
+- [ ] Public deployment
 
 ## Non-goals
 
