@@ -111,6 +111,13 @@ The API exposes `GET /health` and `POST /ask`. A real corpus and provider must b
 - `docs/DEPLOYMENT.md` — deployment guidance
 - `ROADMAP.md` — development plan
 
+## Related engineering work
+
+- [AI Evaluation Engineering](https://github.com/peymanpro/AI-Evaluation-Engineering) provides a separate provider-neutral evaluation and regression-testing layer.
+- [Production Agent Systems](https://github.com/peymanpro/Production-Agent-Systems) explores runtime policy, tool contracts, recovery, trace, and audit boundaries.
+
+These repositories are independent projects. This RAG MVP does not depend on either one at runtime.
+
 ## Scope and honesty
 
 This repository is **portfolio-ready as an AI Engineering RAG MVP**, not a claim of production readiness. A real deployment still requires an evaluated knowledge corpus, production embedding/LLM infrastructure, authentication, rate limiting, monitoring, backups, and measured operational behavior.
