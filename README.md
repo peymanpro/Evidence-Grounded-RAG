@@ -11,7 +11,8 @@ The project now provides an end-to-end RAG MVP with explicit architectural bound
 - deterministic lexical retrieval;
 - an embedding provider boundary and deterministic offline baseline;
 - an OpenAI-compatible embedding adapter;
-- in-memory and persistent SQLite vector storage;
+- in-memory semantic retrieval and an SQLite-backed persistent semantic index;
+- content- and model-aware embedding cache reuse across restarts;
 - hybrid retrieval with Reciprocal Rank Fusion;
 - a second-stage deterministic reranker boundary;
 - evidence selection and citation-ready context;
@@ -22,7 +23,7 @@ The project now provides an end-to-end RAG MVP with explicit architectural bound
 - a versioned benchmark format;
 - a FastAPI service with health and question-answering endpoints;
 - environment-driven provider and corpus startup;
-- automated tests, linting, container build, and container health smoke test in CI.
+- automated tests, linting, container build, Compose validation, and container health smoke test in CI.
 
 The local hashing embedder remains a deterministic development baseline. It is **not** presented as a production semantic embedding model.
 
@@ -33,7 +34,7 @@ Markdown corpus
       ↓
 Ingestion and Chunking
       ↓
-Embedding ───────────────→ Vector Index
+Embedding ───────────────→ Persistent Vector Index
       ↓                         ↓
 Keyword Index ─────────→ Hybrid Retrieval
                                 ↓
@@ -79,7 +80,7 @@ docker compose up -d --build
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Set RAG_API_KEY, RAG_EMBEDDING_MODEL, and RAG_LLM_MODEL in .env before asking questions. The sample corpus is under corpus/; Compose mounts it read-only. Never commit .env or real credentials.
+Set RAG_API_KEY, RAG_EMBEDDING_MODEL, and RAG_LLM_MODEL in .env before asking questions. The sample corpus is under corpus/; Compose mounts it read-only. The SQLite vector database is stored in ./data and persists outside the container. Never commit .env or real credentials.
 
 Send a question:
 
@@ -101,6 +102,7 @@ The OpenAI-compatible adapters use environment variables:
 - RAG_LLM_MODEL
 - RAG_CORPUS_DIR (defaults to data/corpus outside Docker)
 - RAG_CHUNK_MAX_CHARS (defaults to 1200)
+- RAG_VECTOR_DB_PATH (defaults to data/vectors.sqlite3 outside Docker)
 
 Any compatible hosted or self-hosted HTTP endpoint can be used through the provider boundary.
 
@@ -113,10 +115,10 @@ Any compatible hosted or self-hosted HTTP endpoint can be used through the provi
 - src/evidence_rag/embeddings.py — embedding boundary and local baseline
 - src/evidence_rag/providers.py — external embedding and LLM adapters
 - src/evidence_rag/vector_store.py — in-memory vector search
-- src/evidence_rag/persistent_store.py — SQLite vector persistence primitives
+- src/evidence_rag/persistent_store.py — SQLite vector index and embedding cache
 - src/evidence_rag/retrieval.py — lexical retrieval and rank fusion
 - src/evidence_rag/reranking.py — second-stage reranking
-- src/evidence_rag/pipeline.py — retrieval orchestration
+- src/evidence_rag/pipeline.py — retrieval orchestration and index selection
 - src/evidence_rag/grounding.py — evidence selection/context
 - src/evidence_rag/generation.py — grounded generation boundary
 - src/evidence_rag/verification.py — citation verification
@@ -138,6 +140,6 @@ These repositories are independent projects. This RAG MVP does not depend on eit
 
 ## Scope and honesty
 
-This repository is an AI Engineering RAG MVP, **not yet a claim of production readiness**. The current retrieval index is held in memory and is rebuilt from the corpus at startup; using a real provider means startup may call the embedding API for each chunk. Before public deployment, the project still needs persistent vector storage in the live pipeline, a measured real-corpus benchmark, latency/cost tracking, authentication, rate limiting, observability, backups, and a reviewed deployment configuration.
+This repository is an AI Engineering RAG MVP, **not yet a claim of production readiness**. The API uses a persistent SQLite vector index when it starts with provider configuration, but semantic search currently scans the stored vectors in application code. The lexical index is rebuilt in memory at startup. A representative real-corpus benchmark, request-level observability, latency/cost tracking, authentication, rate limiting, backups, and a reviewed cloud deployment remain open tasks. For larger corpora, measure the SQLite baseline before choosing PostgreSQL with pgvector or another vector-search service.
 
 See [ROADMAP.md](./ROADMAP.md) for the remaining production work.
