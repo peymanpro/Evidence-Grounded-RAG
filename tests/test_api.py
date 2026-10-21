@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 from evidence_rag import api
 from evidence_rag.api import app, configure_service
 from evidence_rag.embeddings import HashingEmbedder
-from evidence_rag.generation import Generator
 from evidence_rag.models import Chunk
 
 

@@ -30,6 +30,9 @@ jobs:
       - name: Run test suite
         run: pytest
 
+      - name: Run Ruff
+        run: ruff check src tests
+
   build-and-smoke:
     name: Docker build and smoke test
     runs-on: ubuntu-latest
