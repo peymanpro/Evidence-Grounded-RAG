@@ -14,8 +14,10 @@ services:
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
       RAG_CORPUS_DIR: /app/corpus
       RAG_CHUNK_MAX_CHARS: ${RAG_CHUNK_MAX_CHARS:-1200}
+      RAG_VECTOR_DB_PATH: /app/data/vectors.sqlite3
     volumes:
       - ./corpus:/app/corpus:ro
+      - ./data:/app/data
     init: true
     restart: unless-stopped
     read_only: true
