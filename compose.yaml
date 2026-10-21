@@ -14,7 +14,9 @@ services:
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
       RAG_CORPUS_DIR: /app/corpus
       RAG_CHUNK_MAX_CHARS: ${RAG_CHUNK_MAX_CHARS:-1200}
+      RAG_VECTOR_BACKEND: ${RAG_VECTOR_BACKEND:-sqlite}
       RAG_VECTOR_DB_PATH: /app/data/vectors.sqlite3
+      RAG_DATABASE_URL: ${RAG_DATABASE_URL:-postgresql://rag:rag_dev_password@postgres:5432/rag}
     volumes:
       - ./corpus:/app/corpus:ro
       - ./data:/app/data
@@ -27,3 +29,21 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    profiles: ["pgvector"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rag}
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_dev_password}
+    ports:
+      - "127.0.0.1:${PGVECTOR_PORT:-5432}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
