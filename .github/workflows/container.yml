@@ -1,0 +1,39 @@
+name: container
+
+on:
+  push:
+    branches: [main, "feat/docker-deployment"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build --tag evidence-grounded-rag:test .
+
+      - name: Start container and verify health endpoint
+        run: |
+          docker run --detach --name evidence-grounded-rag --publish 8000:8000 evidence-grounded-rag:test
+          cleanup() {
+            docker logs evidence-grounded-rag || true
+            docker rm --force evidence-grounded-rag || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Health endpoint did not become ready within 60 seconds."
+          exit 1
