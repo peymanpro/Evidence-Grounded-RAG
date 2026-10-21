@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${RAG_PORT:-8000}:8000"
+      - "127.0.0.1:${RAG_PORT:-8000}:8000"
     init: true
     restart: unless-stopped
     read_only: true
