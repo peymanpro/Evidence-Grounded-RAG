@@ -52,13 +52,17 @@ Stop the service with:
 docker compose down
 ```
 
-### Corpus and provider startup
+## Corpus, provider, and persisted index
 
-The container includes a small safe sample corpus under `corpus/`; Compose mounts that directory read-only. Add or replace Markdown files there to use another corpus. The API recursively loads Markdown files when a non-empty `RAG_API_KEY` is configured, then initializes the embedding and generation adapters from the environment variables.
+The container includes a small safe sample corpus under `corpus/`; Compose mounts that directory read-only. Add or replace Markdown files there to use another corpus. The API recursively loads Markdown files when a non-empty `RAG_API_KEY` is configured, then initializes the embedding and generation adapters from environment variables.
 
 Without `RAG_API_KEY`, the service intentionally starts in health-only mode: `GET /health` succeeds, while `POST /ask` returns HTTP 503 instead of pretending to have generated a grounded answer.
 
-**Current limitation:** the retrieval index is held in memory, and all corpus documents are embedded when the service starts. Do not use a large corpus yet: a restart may repeat embedding API calls. Persistent vector storage and measured corpus evaluation remain open tasks.
+Compose mounts `./data` at `/app/data` and stores vectors in `/app/data/vectors.sqlite3`. That host directory survives container recreation and is excluded from Git. The standalone Python API defaults to `data/vectors.sqlite3` unless `RAG_VECTOR_DB_PATH` is set.
+
+The SQLite index reuses cached vectors when chunk text, metadata, and embedding model configuration match. New or changed chunks are embedded; stale chunks are removed from the current index. Changing the embedding provider URL or model triggers re-embedding. This avoids repeated embedding calls on every restart for an unchanged small corpus.
+
+**Scale limitation:** semantic search currently scans the SQLite vectors and calculates cosine similarity in application code. This is a durable local index, not a high-scale vector database. Before using a large corpus, benchmark it and consider PostgreSQL with pgvector or a dedicated vector database. Also note that changing the embedding model triggers a rebuild, which calls the configured embedding API for all chunks.
 
 The image runs as a non-root user. Compose also uses a read-only root filesystem, drops Linux capabilities, enables `no-new-privileges`, and binds the published port to loopback. These controls are a safer local baseline, not a substitute for a complete production security review.
 
@@ -72,9 +76,10 @@ The OpenAI-compatible adapters use:
 - `RAG_LLM_MODEL`
 - `RAG_CORPUS_DIR` (defaults to `data/corpus` outside Docker)
 - `RAG_CHUNK_MAX_CHARS` (defaults to `1200`)
+- `RAG_VECTOR_DB_PATH` (defaults to `data/vectors.sqlite3` outside Docker)
 
 The provider layer is deliberately HTTP-based so compatible hosted or self-hosted services can be used without coupling the core to one SDK.
 
 ## Production boundary
 
-Before public deployment, connect persistent vector storage, evaluate a representative knowledge corpus, add authentication and rate limiting, configure production secret management, monitoring and backups, and measure latency and cost. The remaining implementation work is tracked in `ROADMAP.md`.
+Before public deployment, evaluate a representative knowledge corpus, add authentication and rate limiting, configure production secret management, add request-level traces and metrics, establish backups, and measure latency and cost. For larger datasets, replace or supplement the SQLite cosine-scan index with a database-backed vector-search engine. Cloud deployment remains a separate, cost-bearing step and should be performed against an authorized account. The remaining implementation work is tracked in `ROADMAP.md`.
