@@ -3,7 +3,6 @@ from evidence_rag.grounding import build_context, select_evidence
 from evidence_rag.models import Chunk
 from evidence_rag.pipeline import RetrievalPipeline
 
-
 chunks = [
     Chunk(
         "rate-limit-1",
