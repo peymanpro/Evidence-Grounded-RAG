@@ -197,7 +197,7 @@ class PgVectorStore:
                 and row[3] == chunk.position
                 and row[4] == chunk.metadata
             ):
-                cached[chunk.chunk_id] = list(row[5])
+                cached[chunk.chunk_id] = row[5].to_list()
         return cached
 
     def search(self, query_vector: list[float], k: int = 5) -> list[SearchResult]:
