@@ -149,6 +149,7 @@ class PostgresVectorStore:
     def _index_locked(
         self, chunks: list[Chunk], embedder: Embedder, model_id: str
     ) -> IndexReport:
+        chunk_ids = [chunk.chunk_id for chunk in chunks]
         with self._connection(ensure_extension=True) as connection:
             connection.execute(
                 f"""
