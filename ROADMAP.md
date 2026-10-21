@@ -4,106 +4,93 @@ A research-oriented RAG system focused on retrieving reliable evidence, groundin
 
 ## Current status
 
-**Portfolio-ready RAG MVP is implemented.**
+**RAG MVP with environment-driven startup and container checks.** The service can load a Markdown corpus and configure OpenAI-compatible embedding and generation adapters from environment variables. CI verifies linting, tests, Compose configuration, image build, and a running container health check.
 
-The system now covers the full architectural path from ingestion and hybrid retrieval through reranking, evidence selection, citation verification, grounded generation adapters, evaluation, persistence, and an HTTP API. Production deployment still depends on choosing and operating external embedding/LLM infrastructure and an evaluated real knowledge corpus.
+This is not yet a production-readiness claim. The active retrieval index is in memory, so the corpus is embedded again on restart when a real embedding provider is configured. Persistent indexing in the live pipeline and evaluation on a representative corpus remain open.
 
 ## Deployment track (active)
 
-### Container baseline — completed
+### Container and application bootstrap — completed
 
 - [x] Non-root Docker image for the FastAPI service
 - [x] Docker build context excludes local environments, databases, and secret files
 - [x] Local Compose service uses loopback-only port binding
 - [x] Container uses a read-only root filesystem, drops Linux capabilities, and disables privilege escalation
 - [x] CI runs Ruff and pytest on branch pushes and pull requests
-- [x] CI validates the Compose configuration, builds the image, and smoke-tests `GET /health` in a running container
+- [x] CI validates Compose, builds the image, and smoke-tests GET /health in a running container
+- [x] Recursive Markdown corpus loader with stable relative-path document IDs
+- [x] Environment-driven API startup for an OpenAI-compatible embedding and generation provider
+- [x] Explicit HTTP 503 behavior when the service has no RAG configuration
+- [x] Tests for corpus loading, provider configuration, and lifespan startup
+- [x] Container quick-start and .env.example documented
 
 ### Remaining deployment work
 
-- [ ] Configure API startup from environment variables and a versioned Markdown corpus
-- [ ] Use a real embedding model and connect persistent vector storage
-- [ ] Add a real-corpus benchmark report with retrieval, citation, latency, and cost results
+- [ ] Connect persistent vector storage to the live retrieval pipeline
+- [ ] Add a real-corpus benchmark report with retrieval and citation results
+- [ ] Add a cross-encoder reranker and measure impact against the current baseline
 - [ ] Connect request-level LLM traces and operational metrics
 - [ ] Add authentication, rate limiting, request limits, and production secret management
 - [ ] Deploy to a cloud environment and verify the running service end to end
 
-The container milestone proves that the service packages, starts, and answers its health check. It does **not** mean the API is already configured to answer questions from a production corpus.
+A successful health check proves that the container starts and responds. It does not prove answer quality or production readiness.
 
 ## Roadmap
 
 ### Phase 0 — Foundation
-- [x] Private repository
-- [x] Project structure
-- [x] Initial documentation
-- [x] Technology boundaries
+- [x] Project structure and documentation
+- [x] Clear provider and component boundaries
 - [x] Automated tests and CI
 
 ### Phase 1 — Ingestion
-- [x] Document model
-- [x] Markdown source
-- [x] Basic structural metadata
+- [x] Document model, Markdown source, and basic metadata
 - [x] Structure-aware paragraph chunking
-- [x] Source/document metadata preservation
-- [x] Ingestion and chunking tests
+- [x] Recursive corpus loading with deterministic IDs
 - [ ] Heading/section metadata
 - [ ] Additional source formats
 
 ### Phase 2 — Embeddings and Index
-- [x] Embedding provider boundary
-- [x] Deterministic local embedding baseline
+- [x] Embedding provider boundary and deterministic local baseline
 - [x] OpenAI-compatible embedding adapter
-- [x] Vector search boundary
-- [x] Persistent SQLite vector store
-- [x] Repeatable upsert semantics
-- [ ] Managed/vector-database deployment adapter
+- [x] In-memory vector search
+- [x] Persistent SQLite vector store primitives
+- [ ] Wire persistent vector storage into RetrievalPipeline
+- [ ] Managed/vector database adapter if justified by scale
 
 ### Phase 3 — Retrieval
-- [x] Lexical retrieval baseline
-- [x] Semantic retrieval baseline
-- [x] Hybrid retrieval
-- [x] Second-stage reranking boundary and deterministic implementation
-- [x] Retrieval evidence and scores
-- [x] Retrieval evaluation metrics
-- [x] Benchmark dataset format
+- [x] Lexical and semantic retrieval baselines
+- [x] Hybrid retrieval with Reciprocal Rank Fusion
+- [x] Deterministic second-stage reranking boundary
+- [x] Retrieval evidence and evaluation metrics
 - [ ] Cross-encoder reranker
+- [ ] Real-corpus retrieval benchmark
 
 ### Phase 4 — Grounded Generation
-- [x] Evidence selection
-- [x] Citation-ready context
-- [x] Grounded prompt boundary
+- [x] Evidence selection and citation-ready context
 - [x] OpenAI-compatible LLM adapter
-- [x] Citation verification
-- [x] Explicit insufficient-evidence path
+- [x] Citation verification and insufficient-evidence path
 - [ ] Model-specific grounding benchmark
 
-### Phase 5 — Evaluation
-- [x] Recall@k
-- [x] Precision@k
-- [x] Reciprocal rank
-- [x] nDCG@k
-- [x] Representative benchmark format
-- [ ] Measured benchmark report on a real corpus
-- [ ] Latency and cost tracking
-- [ ] Failure-case analysis
+### Phase 5 — Evaluation and Operations
+- [x] Recall@k, Precision@k, reciprocal rank, and nDCG@k
+- [x] Benchmark dataset format
+- [ ] Measured benchmark report on a versioned corpus
+- [ ] Latency, token usage, and cost tracking
+- [ ] Request-level traces and failure-case analysis
 
 ### Phase 6 — Application
-- [x] HTTP API
-- [x] Health endpoint
-- [x] Ask endpoint with citation metadata
-- [x] Minimal runnable server example
-- [ ] Browser UI
-- [ ] End-to-end production corpus ingestion
-- [ ] Pipeline observability
+- [x] FastAPI health and ask endpoints
+- [x] Environment-driven provider startup and Markdown corpus loading
+- [ ] Authentication and request validation limits
+- [ ] Browser demo, only if it adds value to evaluating the RAG system
 
-### Phase 7 — Hardening
-- [x] Security boundaries documented
-- [x] Prompt-injection boundary documented
-- [x] Deployment documentation
-- [x] Provider configuration through environment variables
-- [ ] Authentication and rate limiting
-- [ ] Production monitoring and backups
-- [ ] Public deployment
+### Phase 7 — Hardening and Release
+- [x] Security boundaries and prompt-injection considerations documented
+- [x] Local container baseline
+- [ ] Rate limiting and production secret management
+- [ ] Operational monitoring and backups
+- [ ] Cloud deployment
+- [ ] Release notes with evaluated limitations
 
 ## Non-goals
 
