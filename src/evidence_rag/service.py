@@ -7,6 +7,7 @@ from .grounding import Evidence, select_evidence
 from .models import Chunk
 from .pipeline import RetrievalPipeline
 from .reranking import LexicalReranker
+from .vector_store import VectorIndex
 
 
 @dataclass(frozen=True)
@@ -23,8 +24,13 @@ class EvidenceRAGService:
         generator: Generator,
         embedder=None,
         reranker: LexicalReranker | None = None,
+        vector_store: VectorIndex | None = None,
     ) -> None:
-        self.retrieval = RetrievalPipeline(chunks, embedder=embedder)
+        self.retrieval = RetrievalPipeline(
+            chunks,
+            embedder=embedder,
+            vector_store=vector_store,
+        )
         self.generator = generator
         self.reranker = reranker or LexicalReranker()
 

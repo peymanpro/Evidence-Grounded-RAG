@@ -1,17 +1,37 @@
 from __future__ import annotations
 
-import os
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from .generation import UnconfiguredGenerator
+from .embeddings import Embedder
+from .generation import Generator, UnconfiguredGenerator
 from .models import Chunk
+from .runtime import build_service_from_environment
 from .service import EvidenceRAGService
+from .vector_store import VectorIndex
 
-
-app = FastAPI(title="Evidence-Grounded RAG", version="0.2.0")
+logger = logging.getLogger(__name__)
 _service: EvidenceRAGService | None = None
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    global _service
+    _service = None
+    try:
+        # Provider calls can block while the initial corpus is embedded.
+        _service = await asyncio.to_thread(build_service_from_environment)
+        yield
+    finally:
+        _service = None
+
+
+app = FastAPI(title="Evidence-Grounded RAG", version="0.2.0", lifespan=lifespan)
 
 
 class AskRequest(BaseModel):
@@ -25,26 +45,48 @@ class AskResponse(BaseModel):
     citations: list[dict[str, str]]
 
 
-def configure_service(chunks: list[Chunk], generator=None, embedder=None) -> None:
+def configure_service(
+    chunks: list[Chunk],
+    generator: Generator | None = None,
+    embedder: Embedder | None = None,
+    vector_store: VectorIndex | None = None,
+) -> None:
+    """Configure the service explicitly; useful for tests and embedding use cases."""
     global _service
     _service = EvidenceRAGService(
         chunks,
-        generator or UnconfiguredGenerator(),
+        generator=generator or UnconfiguredGenerator(),
         embedder=embedder,
+        vector_store=vector_store,
     )
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Liveness endpoint; a healthy process may still lack RAG configuration."""
     return {"status": "ok", "service": "evidence-grounded-rag"}
+
+
+@app.get("/ready")
+def readiness() -> dict[str, str]:
+    if _service is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "RAG service is not configured. Set RAG_API_KEY, "
+                "RAG_EMBEDDING_MODEL, and RAG_LLM_MODEL, and provide Markdown "
+                "documents through RAG_CORPUS_DIR."
+            ),
+        )
+    return {"status": "ready", "service": "evidence-grounded-rag"}
 
 
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest) -> AskResponse:
     if _service is None:
-        return AskResponse(
-            answer="The RAG service is not configured with a knowledge corpus.",
-            citations=[],
+        raise HTTPException(
+            status_code=503,
+            detail="RAG service is not configured; see GET /ready for requirements.",
         )
     result = _service.answer(request.question, request.retrieval_k, request.evidence_k)
     return AskResponse(

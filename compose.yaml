@@ -1,0 +1,42 @@
+services:
+  database:
+    image: pgvector/pgvector:0.8.7-pg16-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+      POSTGRES_USER: ${POSTGRES_USER:-raguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-change-me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-raguser} -d ${POSTGRES_DB:-ragdb}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "${RAG_PORT:-8000}:8000"
+    environment:
+      RAG_API_KEY: ${RAG_API_KEY:-}
+      RAG_API_BASE_URL: ${RAG_API_BASE_URL:-https://api.openai.com/v1}
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      RAG_CORPUS_DIR: /app/data/knowledge
+      RAG_DATABASE_URL: postgresql://${POSTGRES_USER:-raguser}:${POSTGRES_PASSWORD:-local-dev-change-me}@database:5432/${POSTGRES_DB:-ragdb}
+      RAG_VECTOR_TABLE_PREFIX: ${RAG_VECTOR_TABLE_PREFIX:-rag}
+    volumes:
+      - ./data/knowledge:/app/data/knowledge:ro
+    restart: unless-stopped
+    init: true
+
+volumes:
+  postgres-data:

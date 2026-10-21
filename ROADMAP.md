@@ -34,7 +34,11 @@ The system now covers the full architectural path from ingestion and hybrid retr
 - [x] Vector search boundary
 - [x] Persistent SQLite vector store
 - [x] Repeatable upsert semantics
-- [ ] Managed/vector-database deployment adapter
+- [x] PostgreSQL/pgvector persistent semantic index
+- [x] Incremental re-indexing for new and changed chunks
+- [x] Reuse embeddings for unchanged chunks with stable model identity
+- [x] Rebuild the index when the embedding model changes
+- [ ] Managed vector database deployment adapter
 
 ### Phase 3 — Retrieval
 - [x] Lexical retrieval baseline
@@ -66,12 +70,20 @@ The system now covers the full architectural path from ingestion and hybrid retr
 - [ ] Failure-case analysis
 
 ### Phase 6 — Application
+- [x] Non-root Docker image with health check defined
+- [x] Local Docker Compose service defined
+- [x] Docker build and container health smoke test confirmed in CI
 - [x] HTTP API
-- [x] Health endpoint
-- [x] Ask endpoint with citation metadata
+- [x] Liveness and readiness endpoints
+- [x] Environment-driven provider configuration
+- [x] Markdown corpus discovery and startup chunking
+- [x] Ask endpoint with citation metadata and explicit unconfigured response
 - [x] Minimal runnable server example
+- [x] Docker Compose PostgreSQL/pgvector service with persistent volume
+- [x] Runtime vector-store selection via RAG_DATABASE_URL
+- [x] PostgreSQL integration tests in CI
+- [ ] Real-corpus retrieval and grounded-answer benchmark
 - [ ] Browser UI
-- [ ] End-to-end production corpus ingestion
 - [ ] Pipeline observability
 
 ### Phase 7 — Hardening
