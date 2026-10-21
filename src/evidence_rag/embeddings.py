@@ -1,7 +1,7 @@
+import re
 from collections.abc import Sequence
 from hashlib import sha256
 from math import sqrt
-import re
 from typing import Protocol
 
 
