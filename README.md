@@ -87,6 +87,22 @@ uvicorn examples.api_server:app --reload
 
 The API exposes `GET /health` and `POST /ask`. A real corpus and provider must be configured before asking production questions.
 
+### Run with Docker Compose
+
+Requires Docker Engine/Desktop with the Compose plugin.
+
+```bash
+docker compose up --build --detach
+docker compose ps
+curl http://localhost:8000/health
+docker compose logs --follow api
+docker compose down
+```
+
+Set `RAG_PORT` in your environment to map the API to a different host port.
+
+**Current limitation:** the container packages the API and verifies startup/health, but the application does not yet load a knowledge corpus and configure the RAG service at startup. Consequently, `POST /ask` is not yet a working end-to-end question-answering flow. That application wiring and real-corpus evaluation are tracked in the roadmap; do not expose this MVP publicly as a production service.
+
 ## Project structure
 
 - `src/evidence_rag/models.py` — core evidence models
