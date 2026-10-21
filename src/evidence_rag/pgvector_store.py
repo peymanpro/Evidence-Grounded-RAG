@@ -16,7 +16,6 @@ class PgVectorStore:
     """PostgreSQL/pgvector index with model-aware embedding reuse and cosine search."""
 
     _TABLE = "rag_vectors"
-    _META_TABLE = "rag_vector_store_meta"
     _INDEX = "rag_vectors_embedding_hnsw"
 
     def __init__(self, database_url: str) -> None:
@@ -68,8 +67,7 @@ class PgVectorStore:
 
         with self._lock, self._conn.transaction():
             meta = self._conn.execute(
-                "SELECT embedding_model, dimensions FROM rag_vector_store_meta "
-                "WHERE singleton = 1"
+                "SELECT embedding_model FROM rag_vector_store_meta WHERE singleton = 1"
             ).fetchone()
             if meta is None:
                 self._conn.execute(
@@ -77,18 +75,14 @@ class PgVectorStore:
                     "(singleton, embedding_model, dimensions) VALUES (1, %s, NULL)",
                     (embedding_model,),
                 )
-                dimensions = None
-            else:
-                dimensions = meta[1]
-                if meta[0] != embedding_model:
-                    self._conn.execute("DELETE FROM rag_vectors")
-                    self._conn.execute(f"DROP INDEX IF EXISTS {self._INDEX}")
-                    self._conn.execute(
-                        "UPDATE rag_vector_store_meta "
-                        "SET embedding_model = %s, dimensions = NULL WHERE singleton = 1",
-                        (embedding_model,),
-                    )
-                    dimensions = None
+            elif meta[0] != embedding_model:
+                self._conn.execute("DELETE FROM rag_vectors")
+                self._conn.execute(f"DROP INDEX IF EXISTS {self._INDEX}")
+                self._conn.execute(
+                    "UPDATE rag_vector_store_meta "
+                    "SET embedding_model = %s, dimensions = NULL WHERE singleton = 1",
+                    (embedding_model,),
+                )
 
             if chunks:
                 self._conn.execute(
@@ -111,7 +105,9 @@ class PgVectorStore:
             )
         dimensions_in_batch = {len(vector) for vector in vectors}
         if len(dimensions_in_batch) != 1 or 0 in dimensions_in_batch:
-            raise ValueError("Embedder must return non-empty vectors with one consistent dimension")
+            raise ValueError(
+                "Embedder must return non-empty vectors with one consistent dimension"
+            )
 
         actual_dimensions = next(iter(dimensions_in_batch))
         with self._lock, self._conn.transaction():
@@ -184,14 +180,13 @@ class PgVectorStore:
                 FROM rag_vectors
                 """
             ).fetchall()
-        cached: dict[str, list[float]] = {}
-        with self._lock:
             meta = self._conn.execute(
                 "SELECT embedding_model FROM rag_vector_store_meta WHERE singleton = 1"
             ).fetchone()
         if meta is None or meta[0] != embedding_model:
-            return cached
+            return {}
 
+        cached: dict[str, list[float]] = {}
         for row in rows:
             chunk = requested.get(row[0])
             if chunk is None:
