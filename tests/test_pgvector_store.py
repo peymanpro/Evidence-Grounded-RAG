@@ -1,5 +1,5 @@
-from collections.abc import Sequence
 import os
+from collections.abc import Sequence
 
 import pytest
 
