@@ -68,7 +68,7 @@ The system now covers the full architectural path from ingestion and hybrid retr
 ### Phase 6 — Application
 - [x] Non-root Docker image with health check defined
 - [x] Local Docker Compose service defined
-- [ ] Docker build and container health smoke test confirmed in CI
+- [x] Docker build and container health smoke test confirmed in CI
 - [x] HTTP API
 - [x] Health endpoint
 - [x] Ask endpoint with citation metadata
