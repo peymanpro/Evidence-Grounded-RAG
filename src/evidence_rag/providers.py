@@ -5,7 +5,6 @@ import os
 from collections.abc import Sequence
 from urllib.request import Request, urlopen
 
-from .embeddings import Embedder
 from .generation import Generator
 
 
