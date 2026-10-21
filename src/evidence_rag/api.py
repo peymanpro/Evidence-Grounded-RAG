@@ -15,7 +15,6 @@ from .models import Chunk
 from .providers import OpenAICompatibleEmbedder, configured_generator
 from .service import EvidenceRAGService
 
-
 _service: EvidenceRAGService | None = None
 
 
