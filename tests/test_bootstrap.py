@@ -1,5 +1,6 @@
-import pytest
 from pathlib import Path
+
+import pytest
 
 from evidence_rag.bootstrap import load_corpus
 
