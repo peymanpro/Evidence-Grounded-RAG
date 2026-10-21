@@ -8,6 +8,28 @@ A research-oriented RAG system focused on retrieving reliable evidence, groundin
 
 The system now covers the full architectural path from ingestion and hybrid retrieval through reranking, evidence selection, citation verification, grounded generation adapters, evaluation, persistence, and an HTTP API. Production deployment still depends on choosing and operating external embedding/LLM infrastructure and an evaluated real knowledge corpus.
 
+## Deployment track (active)
+
+### Container baseline — completed
+
+- [x] Non-root Docker image for the FastAPI service
+- [x] Docker build context excludes local environments, databases, and secret files
+- [x] Local Compose service uses loopback-only port binding
+- [x] Container uses a read-only root filesystem, drops Linux capabilities, and disables privilege escalation
+- [x] CI runs Ruff and pytest on branch pushes and pull requests
+- [x] CI validates the Compose configuration, builds the image, and smoke-tests `GET /health` in a running container
+
+### Remaining deployment work
+
+- [ ] Configure API startup from environment variables and a versioned Markdown corpus
+- [ ] Use a real embedding model and connect persistent vector storage
+- [ ] Add a real-corpus benchmark report with retrieval, citation, latency, and cost results
+- [ ] Connect request-level LLM traces and operational metrics
+- [ ] Add authentication, rate limiting, request limits, and production secret management
+- [ ] Deploy to a cloud environment and verify the running service end to end
+
+The container milestone proves that the service packages, starts, and answers its health check. It does **not** mean the API is already configured to answer questions from a production corpus.
+
 ## Roadmap
 
 ### Phase 0 — Foundation
