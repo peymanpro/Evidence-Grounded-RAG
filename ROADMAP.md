@@ -70,11 +70,14 @@ The system now covers the full architectural path from ingestion and hybrid retr
 - [x] Local Docker Compose service defined
 - [x] Docker build and container health smoke test confirmed in CI
 - [x] HTTP API
-- [x] Health endpoint
-- [x] Ask endpoint with citation metadata
+- [x] Liveness and readiness endpoints
+- [x] Environment-driven provider configuration
+- [x] Markdown corpus discovery and startup chunking
+- [x] Ask endpoint with citation metadata and explicit unconfigured response
 - [x] Minimal runnable server example
+- [ ] Durable vector index and embedding reuse
+- [ ] Real-corpus retrieval and grounded-answer benchmark
 - [ ] Browser UI
-- [ ] End-to-end production corpus ingestion
 - [ ] Pipeline observability
 
 ### Phase 7 — Hardening

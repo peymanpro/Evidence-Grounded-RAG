@@ -9,7 +9,7 @@ pip install -e ".[dev]"
 uvicorn examples.api_server:app --reload
 ```
 
-The API exposes `GET /health` and `POST /ask`.
+The API exposes `GET /health`, `GET /ready`, and `POST /ask`. The liveness endpoint remains healthy without provider settings; readiness and asking return HTTP 503 until the RAG service is configured.
 
 ## Provider configuration
 
@@ -24,19 +24,24 @@ The provider layer is deliberately HTTP-based so compatible hosted or self-hoste
 
 ## Local Docker Compose
 
-The repository includes a non-root Docker image and a Compose service for reproducible local startup.
+The repository includes a non-root Docker image and a Compose service for reproducible startup.
 
-```bash
+1. Copy `.env.example` to `.env`.
+2. Set `RAG_API_KEY`, `RAG_EMBEDDING_MODEL`, and `RAG_LLM_MODEL` for the chosen OpenAI-compatible provider.
+3. Add Markdown knowledge files to `data/knowledge`.
+4. Run:
+
+```powershell
 docker compose up --build --detach
-docker compose ps
-curl http://localhost:8000/health
+Invoke-RestMethod http://localhost:8000/health
+Invoke-RestMethod http://localhost:8000/ready
 docker compose logs --follow api
 docker compose down
 ```
 
-Set `RAG_PORT` to change the host port; the container listens on port `8000`. The image health check probes `/health`.
+Set `RAG_PORT` to change the host port; the container listens on port `8000`. Compose passes the provider settings to the application and mounts `data/knowledge` read-only. The image health check probes `/health`; use `/ready` to verify RAG configuration. If provider settings are absent, `/ready` and `/ask` return HTTP 503.
 
-This is currently a packaging and startup milestone, not a production deployment. The API does not yet load a knowledge corpus or configure the RAG pipeline automatically, so `POST /ask` cannot yet execute end-to-end RAG from the container. Complete startup configuration, corpus ingestion, persistence, security controls, and real-corpus evaluation before public exposure.
+At startup, the current implementation reads Markdown files, chunks them, and builds an in-memory index. It re-embeds the corpus each time it starts, so use a small test corpus for now. Durable vector storage, embedding reuse, authentication, rate limiting, monitoring, backups, and measured real-corpus evaluation remain before production deployment.
 
 ## Production boundary
 

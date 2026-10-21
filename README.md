@@ -65,6 +65,7 @@ RAG_API_KEY
 RAG_API_BASE_URL       # optional, defaults to https://api.openai.com/v1
 RAG_EMBEDDING_MODEL
 RAG_LLM_MODEL
+RAG_CORPUS_DIR         # defaults to data/knowledge; Compose uses /app/data/knowledge
 ```
 
 Any compatible hosted or self-hosted HTTP endpoint can be used through the provider boundary.
@@ -85,23 +86,27 @@ Run the API example:
 uvicorn examples.api_server:app --reload
 ```
 
-The API exposes `GET /health` and `POST /ask`. A real corpus and provider must be configured before asking production questions.
+The API exposes `GET /health`, `GET /ready`, and `POST /ask`. When provider settings are absent, the process remains live but `/ready` and `/ask` return HTTP 503. When configured, startup loads Markdown files from `RAG_CORPUS_DIR`, chunks them, and builds an in-memory retrieval index.
 
 ### Run with Docker Compose
 
 Requires Docker Engine/Desktop with the Compose plugin.
 
-```bash
+Copy `.env.example` to `.env` and set `RAG_API_KEY`, `RAG_EMBEDDING_MODEL`, and `RAG_LLM_MODEL` for your OpenAI-compatible provider. Add your own Markdown files to `data/knowledge`.
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env, then:
 docker compose up --build --detach
-docker compose ps
-curl http://localhost:8000/health
+Invoke-RestMethod http://localhost:8000/health
+Invoke-RestMethod http://localhost:8000/ready
 docker compose logs --follow api
 docker compose down
 ```
 
-Set `RAG_PORT` in your environment to map the API to a different host port.
+Set `RAG_PORT` in your environment to map the API to a different host port. If provider settings are absent, only the liveness endpoint succeeds; `/ready` and `/ask` return HTTP 503.
 
-**Current limitation:** the container packages the API and verifies startup/health, but the application does not yet load a knowledge corpus and configure the RAG service at startup. Consequently, `POST /ask` is not yet a working end-to-end question-answering flow. That application wiring and real-corpus evaluation are tracked in the roadmap; do not expose this MVP publicly as a production service.
+**Current limitation:** the corpus is loaded into an in-memory index and embedded during each startup. This is suitable for validating a small corpus, not for large or production workloads. The upcoming persistence phase will address durable indexing and avoiding repeated embedding work. Do not expose this MVP publicly as a production service.
 
 ## Project structure
 
