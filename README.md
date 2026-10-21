@@ -1,6 +1,6 @@
 # Evidence-Grounded-RAG
 
-A research-oriented Retrieval-Augmented Generation system focused on evidence retrieval, grounded answers, citations, and measurable evaluation.
+An AI Engineering RAG system for evidence-grounded Q&A, hybrid retrieval, reranking, citation verification, and retrieval evaluation, with persistent PostgreSQL/pgvector indexing and a Dockerized FastAPI service.
 
 ## What is implemented
 
