@@ -34,7 +34,11 @@ The system now covers the full architectural path from ingestion and hybrid retr
 - [x] Vector search boundary
 - [x] Persistent SQLite vector store
 - [x] Repeatable upsert semantics
-- [ ] Managed/vector-database deployment adapter
+- [x] PostgreSQL/pgvector persistent semantic index
+- [x] Incremental re-indexing for new and changed chunks
+- [x] Reuse embeddings for unchanged chunks with stable model identity
+- [x] Rebuild the index when the embedding model changes
+- [ ] Managed vector database deployment adapter
 
 ### Phase 3 — Retrieval
 - [x] Lexical retrieval baseline
@@ -75,7 +79,9 @@ The system now covers the full architectural path from ingestion and hybrid retr
 - [x] Markdown corpus discovery and startup chunking
 - [x] Ask endpoint with citation metadata and explicit unconfigured response
 - [x] Minimal runnable server example
-- [ ] Durable vector index and embedding reuse
+- [x] Docker Compose PostgreSQL/pgvector service with persistent volume
+- [x] Runtime vector-store selection via RAG_DATABASE_URL
+- [x] PostgreSQL integration tests in CI
 - [ ] Real-corpus retrieval and grounded-answer benchmark
 - [ ] Browser UI
 - [ ] Pipeline observability

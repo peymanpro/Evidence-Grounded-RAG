@@ -11,7 +11,9 @@ The project now provides an end-to-end RAG MVP with explicit architectural bound
 - deterministic lexical retrieval;
 - an embedding provider boundary and deterministic offline baseline;
 - an OpenAI-compatible embedding adapter;
-- in-memory and persistent SQLite vector storage;
+- an in-memory vector-store implementation for offline examples;
+- persistent semantic indexing with PostgreSQL and pgvector;
+- incremental embedding reuse for unchanged chunks and model-aware index rebuilds;
 - hybrid retrieval with Reciprocal Rank Fusion;
 - a second-stage deterministic reranker boundary;
 - evidence selection and citation-ready context;
@@ -66,6 +68,8 @@ RAG_API_BASE_URL       # optional, defaults to https://api.openai.com/v1
 RAG_EMBEDDING_MODEL
 RAG_LLM_MODEL
 RAG_CORPUS_DIR         # defaults to data/knowledge; Compose uses /app/data/knowledge
+RAG_DATABASE_URL       # optional outside Compose; when set, selects PostgreSQL/pgvector
+RAG_VECTOR_TABLE_PREFIX # optional table prefix; defaults to rag
 ```
 
 Any compatible hosted or self-hosted HTTP endpoint can be used through the provider boundary.
@@ -86,13 +90,13 @@ Run the API example:
 uvicorn examples.api_server:app --reload
 ```
 
-The API exposes `GET /health`, `GET /ready`, and `POST /ask`. When provider settings are absent, the process remains live but `/ready` and `/ask` return HTTP 503. When configured, startup loads Markdown files from `RAG_CORPUS_DIR`, chunks them, and builds an in-memory retrieval index.
+The API exposes `GET /health`, `GET /ready`, and `POST /ask`. When provider settings are absent, the process remains live but `/ready` and `/ask` return HTTP 503. When configured, startup loads Markdown files from `RAG_CORPUS_DIR` and chunks them. If `RAG_DATABASE_URL` is set, semantic vectors are stored in PostgreSQL/pgvector; otherwise the API uses the in-memory index.
 
 ### Run with Docker Compose
 
 Requires Docker Engine/Desktop with the Compose plugin.
 
-Copy `.env.example` to `.env` and set `RAG_API_KEY`, `RAG_EMBEDDING_MODEL`, and `RAG_LLM_MODEL` for your OpenAI-compatible provider. Add your own Markdown files to `data/knowledge`.
+Copy `.env.example` to `.env`. Set `RAG_API_KEY`, `RAG_EMBEDDING_MODEL`, and `RAG_LLM_MODEL` for your OpenAI-compatible provider, and add Markdown knowledge files under `data/knowledge`. The example PostgreSQL password is for local development only; change it before exposing any services. Use URL-safe characters for `POSTGRES_PASSWORD`, because Compose embeds it in the database connection URL.
 
 ```powershell
 Copy-Item .env.example .env
@@ -104,9 +108,11 @@ docker compose logs --follow api
 docker compose down
 ```
 
-Set `RAG_PORT` in your environment to map the API to a different host port. If provider settings are absent, only the liveness endpoint succeeds; `/ready` and `/ask` return HTTP 503.
+Compose starts the API and a PostgreSQL/pgvector service, waits for the database health check, and stores database files in the named `postgres-data` volume. PostgreSQL is not bound to a host port by default. `docker compose down` keeps the volume; `docker compose down -v` deletes it and the stored index.
 
-**Current limitation:** the corpus is loaded into an in-memory index and embedded during each startup. This is suitable for validating a small corpus, not for large or production workloads. The upcoming persistence phase will address durable indexing and avoiding repeated embedding work. Do not expose this MVP publicly as a production service.
+When `RAG_DATABASE_URL` is configured, embeddings and vectors are persisted across API restarts. A stable embedding model identifier and base URL allow unchanged chunks to reuse stored embeddings; changed/new chunks are re-embedded. Changing the configured model identity triggers re-indexing. If your provider silently changes the model behind the same identifier, update the model identifier yourself.
+
+**Current limitation:** this is not yet production-ready. The sample corpus is small, and the project still needs real-corpus benchmarks, authentication, rate limiting, operational monitoring, backups, and stronger failure handling before public exposure.
 
 ## Project structure
 
@@ -115,7 +121,8 @@ Set `RAG_PORT` in your environment to map the API to a different host port. If p
 - `src/evidence_rag/chunking.py` — chunking
 - `src/evidence_rag/embeddings.py` — embedding boundary and local baseline
 - `src/evidence_rag/providers.py` — external embedding and LLM adapters
-- `src/evidence_rag/vector_store.py` — in-memory vector search
+- `src/evidence_rag/vector_store.py` — vector index contract and in-memory implementation
+- `src/evidence_rag/postgres_store.py` — persistent PostgreSQL/pgvector index
 - `src/evidence_rag/persistent_store.py` — SQLite persistence
 - `src/evidence_rag/retrieval.py` — lexical retrieval and rank fusion
 - `src/evidence_rag/reranking.py` — second-stage reranking
