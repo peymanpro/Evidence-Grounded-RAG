@@ -1,4 +1,4 @@
-from evidence_rag.evaluation import evaluate_retrieval, RetrievalCase
+from evidence_rag.evaluation import RetrievalCase, evaluate_retrieval
 from evidence_rag.grounding import build_context, select_evidence
 from evidence_rag.models import Chunk
 from evidence_rag.pipeline import RetrievalPipeline
