@@ -9,6 +9,7 @@ import re
 from typing import Any
 
 import psycopg
+from pgvector import Vector
 from pgvector.psycopg import register_vector
 
 from .embeddings import Embedder
@@ -120,7 +121,7 @@ class PostgresVectorStore:
                 chunk.position,
                 self._metadata_json(chunk.metadata),
                 self._content_hash(chunk),
-                list(vector),
+                Vector(list(vector)),
             )
             for chunk, vector in zip(chunks, vectors, strict=True)
         ]
@@ -318,7 +319,7 @@ class PostgresVectorStore:
                 ORDER BY embedding <=> %s
                 LIMIT %s
                 """,
-                (query_vector, query_vector, k),
+                (Vector(query_vector), Vector(query_vector), k),
             ).fetchall()
 
         return [
