@@ -4,31 +4,34 @@ A research-oriented RAG system focused on retrieving reliable evidence, groundin
 
 ## Current status
 
-**RAG MVP with environment-driven startup and container checks.** The service can load a Markdown corpus and configure OpenAI-compatible embedding and generation adapters from environment variables. CI verifies linting, tests, Compose configuration, image build, and a running container health check.
+**RAG MVP with environment-driven startup, a persistent SQLite vector index, and container validation.** When configured with an OpenAI-compatible provider, the service loads a Markdown corpus, reuses matching cached embeddings across restarts, and indexes new or changed chunks. CI checks linting, tests, Compose configuration, image build, and the running container health endpoint.
 
-This is not yet a production-readiness claim. The active retrieval index is in memory, so the corpus is embedded again on restart when a real embedding provider is configured. Persistent indexing in the live pipeline and evaluation on a representative corpus remain open.
+This is not yet a production-readiness claim. The SQLite semantic search scans vectors in application code, and lexical retrieval is rebuilt in memory at startup. Evaluation on a representative real corpus, operational observability, hardening, and cloud deployment remain open.
 
 ## Deployment track (active)
 
-### Container and application bootstrap — completed
+### Container, bootstrap, and persistent local index — completed
 
 - [x] Non-root Docker image for the FastAPI service
 - [x] Docker build context excludes local environments, databases, and secret files
-- [x] Local Compose service uses loopback-only port binding
-- [x] Container uses a read-only root filesystem, drops Linux capabilities, and disables privilege escalation
+- [x] Local Compose service binds to loopback and persists data through a host volume
+- [x] Read-only container filesystem, dropped Linux capabilities, and no privilege escalation
 - [x] CI runs Ruff and pytest on branch pushes and pull requests
 - [x] CI validates Compose, builds the image, and smoke-tests GET /health in a running container
 - [x] Recursive Markdown corpus loader with stable relative-path document IDs
-- [x] Environment-driven API startup for an OpenAI-compatible embedding and generation provider
+- [x] Environment-driven API startup for OpenAI-compatible embedding and generation providers
 - [x] Explicit HTTP 503 behavior when the service has no RAG configuration
-- [x] Tests for corpus loading, provider configuration, and lifespan startup
-- [x] Container quick-start and .env.example documented
+- [x] SQLite vector index integrated into RetrievalPipeline and API startup
+- [x] Cached embeddings reused only when text, metadata, and embedding model key match
+- [x] New and changed chunks are re-embedded; stale chunks are removed from the active index
+- [x] Tests cover persistence across restart, cache invalidation, corpus sync, and environment-driven startup
+- [x] Container quick-start, .env.example, and deployment limits documented
 
 ### Remaining deployment work
 
-- [ ] Connect persistent vector storage to the live retrieval pipeline
-- [ ] Add a real-corpus benchmark report with retrieval and citation results
-- [ ] Add a cross-encoder reranker and measure impact against the current baseline
+- [ ] Benchmark the SQLite baseline on a versioned, representative corpus
+- [ ] Add a measured PostgreSQL/pgvector adapter if results justify it
+- [ ] Add a cross-encoder reranker and measure its impact
 - [ ] Connect request-level LLM traces and operational metrics
 - [ ] Add authentication, rate limiting, request limits, and production secret management
 - [ ] Deploy to a cloud environment and verify the running service end to end
@@ -53,9 +56,9 @@ A successful health check proves that the container starts and responds. It does
 - [x] Embedding provider boundary and deterministic local baseline
 - [x] OpenAI-compatible embedding adapter
 - [x] In-memory vector search
-- [x] Persistent SQLite vector store primitives
-- [ ] Wire persistent vector storage into RetrievalPipeline
-- [ ] Managed/vector database adapter if justified by scale
+- [x] Persistent SQLite vector store integrated into the retrieval pipeline
+- [x] Content- and model-aware embedding cache
+- [ ] Benchmark SQLite against PostgreSQL with pgvector on a representative corpus
 
 ### Phase 3 — Retrieval
 - [x] Lexical and semantic retrieval baselines
