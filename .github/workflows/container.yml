@@ -13,6 +13,22 @@ jobs:
   tests:
     name: Python tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: rag_test
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rag -d rag_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5432/rag_test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
