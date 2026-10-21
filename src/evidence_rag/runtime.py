@@ -6,8 +6,10 @@ from pathlib import Path
 
 from .chunking import chunk_document
 from .ingestion import load_markdown
+from .postgres_store import PostgresVectorStore
 from .providers import OpenAICompatibleEmbedder, OpenAICompatibleGenerator
 from .service import EvidenceRAGService
+from .vector_store import InMemoryVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -52,5 +54,20 @@ def build_service_from_environment() -> EvidenceRAGService | None:
 
     embedder = OpenAICompatibleEmbedder.from_env()
     generator = OpenAICompatibleGenerator.from_env()
+    database_url = os.getenv("RAG_DATABASE_URL", "").strip()
+    vector_store = (
+        PostgresVectorStore.from_env()
+        if database_url
+        else InMemoryVectorStore()
+    )
     logger.info("Loaded %d Markdown files and %d chunks for RAG", len(markdown_files), len(chunks))
-    return EvidenceRAGService(chunks, generator=generator, embedder=embedder)
+    logger.info(
+        "Using %s vector index",
+        "PostgreSQL/pgvector" if database_url else "in-memory",
+    )
+    return EvidenceRAGService(
+        chunks,
+        generator=generator,
+        embedder=embedder,
+        vector_store=vector_store,
+    )

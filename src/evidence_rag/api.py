@@ -13,6 +13,7 @@ from .generation import Generator, UnconfiguredGenerator
 from .models import Chunk
 from .runtime import build_service_from_environment
 from .service import EvidenceRAGService
+from .vector_store import VectorIndex
 
 logger = logging.getLogger(__name__)
 _service: EvidenceRAGService | None = None
@@ -48,6 +49,7 @@ def configure_service(
     chunks: list[Chunk],
     generator: Generator | None = None,
     embedder: Embedder | None = None,
+    vector_store: VectorIndex | None = None,
 ) -> None:
     """Configure the service explicitly; useful for tests and embedding use cases."""
     global _service
@@ -55,6 +57,7 @@ def configure_service(
         chunks,
         generator=generator or UnconfiguredGenerator(),
         embedder=embedder,
+        vector_store=vector_store,
     )
 
 

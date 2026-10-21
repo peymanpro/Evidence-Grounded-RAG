@@ -112,3 +112,42 @@ def test_postgres_index_reembeds_when_model_identity_changes(database_dsn: str) 
     assert report.model_changed
     assert report.embedded == 2
     assert len(second_embedder.embedded_texts) == 2
+
+
+def test_runtime_selects_postgres_store_when_database_url_is_configured(
+    database_dsn: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    from evidence_rag import runtime
+
+    corpus_dir = tmp_path / "knowledge"
+    corpus_dir.mkdir()
+    (corpus_dir / "guide.md").write_text(
+        "# Retrieval guide\n\nRetrieval evaluation measures relevant documents.",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("RAG_API_KEY", "test-key")
+    monkeypatch.setenv("RAG_EMBEDDING_MODEL", "test-embedding")
+    monkeypatch.setenv("RAG_LLM_MODEL", "test-model")
+    monkeypatch.setenv("RAG_DATABASE_URL", database_dsn)
+    monkeypatch.setenv("RAG_VECTOR_TABLE_PREFIX", "test_rag_vector_store")
+    monkeypatch.setenv("RAG_CORPUS_DIR", str(corpus_dir))
+    monkeypatch.setattr(
+        runtime.OpenAICompatibleEmbedder,
+        "from_env",
+        classmethod(lambda cls: __import__("evidence_rag.embeddings", fromlist=["HashingEmbedder"]).HashingEmbedder()),
+    )
+    monkeypatch.setattr(
+        runtime.OpenAICompatibleGenerator,
+        "from_env",
+        classmethod(lambda cls: __import__(__name__, fromlist=["StubGenerator"]).StubGenerator()),
+    )
+
+    service = runtime.build_service_from_environment()
+
+    assert service is not None
+    assert isinstance(service.retrieval._vector_store, PostgresVectorStore)
+    result = service.answer("What does retrieval evaluation measure?")
+    assert result.answer == "Grounded answer [E1]"
+    assert result.evidence
