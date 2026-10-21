@@ -139,30 +139,31 @@ class PgVectorStore:
                         "USING hnsw (embedding vector_cosine_ops)"
                     )
 
-            self._conn.executemany(
-                """
-                INSERT INTO rag_vectors
-                    (chunk_id, document_id, text, position, metadata, embedding)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (chunk_id) DO UPDATE SET
-                    document_id = EXCLUDED.document_id,
-                    text = EXCLUDED.text,
-                    position = EXCLUDED.position,
-                    metadata = EXCLUDED.metadata,
-                    embedding = EXCLUDED.embedding
-                """,
-                [
-                    (
-                        chunk.chunk_id,
-                        chunk.document_id,
-                        chunk.text,
-                        chunk.position,
-                        Jsonb(chunk.metadata),
-                        Vector(vector),
-                    )
-                    for chunk, vector in zip(missing, vectors, strict=True)
-                ],
-            )
+            with self._conn.cursor() as cursor:
+                cursor.executemany(
+                    """
+                    INSERT INTO rag_vectors
+                        (chunk_id, document_id, text, position, metadata, embedding)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (chunk_id) DO UPDATE SET
+                        document_id = EXCLUDED.document_id,
+                        text = EXCLUDED.text,
+                        position = EXCLUDED.position,
+                        metadata = EXCLUDED.metadata,
+                        embedding = EXCLUDED.embedding
+                    """,
+                    [
+                        (
+                            chunk.chunk_id,
+                            chunk.document_id,
+                            chunk.text,
+                            chunk.position,
+                            Jsonb(chunk.metadata),
+                            Vector(vector),
+                        )
+                        for chunk, vector in zip(missing, vectors, strict=True)
+                    ],
+                )
 
     def _cached_vectors(
         self,
