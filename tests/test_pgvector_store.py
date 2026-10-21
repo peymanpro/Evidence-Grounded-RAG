@@ -4,7 +4,6 @@ from collections.abc import Sequence
 import pytest
 
 from evidence_rag.models import Chunk
-from evidence_rag.pgvector_store import PgVectorStore
 
 
 class CountingEmbedder:
@@ -17,10 +16,14 @@ class CountingEmbedder:
         return [[float(index + 1), 1.0, 0.5] for index, _ in enumerate(batch)]
 
 
-def _store() -> PgVectorStore:
+def _store():
     database_url = os.getenv("RAG_TEST_DATABASE_URL")
     if not database_url:
         pytest.skip("RAG_TEST_DATABASE_URL is not configured")
+    pytest.importorskip("psycopg")
+    pytest.importorskip("pgvector")
+    from evidence_rag.pgvector_store import PgVectorStore
+
     return PgVectorStore(database_url)
 
 
