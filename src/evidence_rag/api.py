@@ -7,7 +7,6 @@ from .generation import UnconfiguredGenerator
 from .models import Chunk
 from .service import EvidenceRAGService
 
-
 app = FastAPI(title="Evidence-Grounded RAG", version="0.2.0")
 _service: EvidenceRAGService | None = None
 
