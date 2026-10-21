@@ -7,6 +7,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:${RAG_PORT:-8000}:8000"
+    environment:
+      RAG_API_KEY: ${RAG_API_KEY:-}
+      RAG_API_BASE_URL: ${RAG_API_BASE_URL:-https://api.openai.com/v1}
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      RAG_CORPUS_DIR: /app/corpus
+      RAG_CHUNK_MAX_CHARS: ${RAG_CHUNK_MAX_CHARS:-1200}
+    volumes:
+      - ./corpus:/app/corpus:ro
     init: true
     restart: unless-stopped
     read_only: true
