@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,6 +12,11 @@ from evidence_rag.models import Chunk
 class StubGenerator:
     def generate(self, prompt: str) -> str:
         return "Grounded answer [E1]"
+
+
+class StubEmbedder:
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        return [[1.0, 0.0] for _ in texts]
 
 
 def test_health() -> None:
@@ -34,7 +42,37 @@ def test_configure_service_requires_provider_settings(monkeypatch: pytest.Monkey
         api_module.configure_service_from_env()
 
 
-def test_ask_returns_citations() -> None:
+def test_lifespan_loads_corpus_and_configures_providers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    corpus_dir = tmp_path / "corpus"
+    corpus_dir.mkdir()
+    (corpus_dir / "guide.md").write_text(
+        "# Guide\n\nPython supports reliable software.", encoding="utf-8"
+    )
+
+    monkeypatch.setattr(api_module, "_service", None)
+    monkeypatch.setenv("RAG_API_KEY", "test-key")
+    monkeypatch.setenv("RAG_EMBEDDING_MODEL", "test-embedding")
+    monkeypatch.setenv("RAG_LLM_MODEL", "test-chat")
+    monkeypatch.setenv("RAG_CORPUS_DIR", str(corpus_dir))
+    monkeypatch.setattr(api_module, "configured_generator", lambda: StubGenerator())
+    monkeypatch.setattr(
+        api_module.OpenAICompatibleEmbedder,
+        "from_env",
+        classmethod(lambda cls: StubEmbedder()),
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/ask", json={"question": "What does the guide say?"})
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "Grounded answer [E1]"
+    assert response.json()["citations"][0]["chunk_id"] == "guide:0"
+
+
+def test_ask_returns_citations(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(api_module, "_service", None)
     configure_service(
         [Chunk("c1", "d1", "Python supports reliable software systems.", 0)],
         generator=StubGenerator(),
