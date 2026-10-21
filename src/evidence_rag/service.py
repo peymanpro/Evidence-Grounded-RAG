@@ -27,12 +27,16 @@ class EvidenceRAGService:
         reranker: LexicalReranker | None = None,
         vector_store_path: str | Path | None = None,
         embedding_model_key: str = "default",
+        vector_store_backend: str | None = None,
+        database_url: str | None = None,
     ) -> None:
         self.retrieval = RetrievalPipeline(
             chunks,
             embedder=embedder,
             vector_store_path=vector_store_path,
             embedding_model_key=embedding_model_key,
+            vector_store_backend=vector_store_backend,
+            database_url=database_url,
         )
         self.generator = generator
         self.reranker = reranker or LexicalReranker()
