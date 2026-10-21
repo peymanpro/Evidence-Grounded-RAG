@@ -23,10 +23,9 @@ class PgVectorStore:
             raise ValueError("database_url must not be empty")
 
         self._lock = RLock()
-        self._conn = psycopg.connect(database_url)
+        self._conn = psycopg.connect(database_url, autocommit=True)
         with self._lock:
             self._conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-            self._conn.commit()
             register_vector(self._conn)
             with self._conn.transaction():
                 self._conn.execute(
