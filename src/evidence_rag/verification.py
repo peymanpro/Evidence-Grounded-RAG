@@ -4,7 +4,6 @@ import re
 
 from .grounding import Evidence
 
-
 _CITATION_RE = re.compile(r"\[E(\d+)\]")
 
 
