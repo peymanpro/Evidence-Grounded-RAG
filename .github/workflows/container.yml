@@ -50,30 +50,39 @@ jobs:
         run: ruff check src tests
 
   build-and-smoke:
-    name: Docker build and smoke test
+    name: Compose stack smoke test
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build --tag evidence-grounded-rag:test .
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
 
-      - name: Start container and verify health endpoint
+      - name: Start Compose stack and verify API and pgvector
         run: |
-          docker run --detach --name evidence-grounded-rag --publish 8000:8000 evidence-grounded-rag:test
           cleanup() {
-            docker logs evidence-grounded-rag || true
-            docker rm --force evidence-grounded-rag || true
+            docker compose logs --no-color || true
+            docker compose down --volumes --remove-orphans || true
           }
           trap cleanup EXIT
 
-          for attempt in $(seq 1 30); do
+          docker compose up --build --detach
+
+          for attempt in $(seq 1 45); do
             if curl --fail --silent http://127.0.0.1:8000/health; then
-              exit 0
+              break
             fi
             sleep 2
           done
+          curl --fail --silent --show-error http://127.0.0.1:8000/health
 
-          echo "Health endpoint did not become ready within 60 seconds."
-          exit 1
+          readiness_status=$(curl --silent --output /dev/null --write-out "%{http_code}" http://127.0.0.1:8000/ready)
+          if [ "$readiness_status" != "503" ]; then
+            echo "Expected an unconfigured RAG service to report readiness HTTP 503; got $readiness_status."
+            exit 1
+          fi
+
+          docker compose exec --no-TTY database psql -U raguser -d ragdb -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS vector" \
+            -c "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
