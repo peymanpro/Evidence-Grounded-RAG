@@ -35,6 +35,8 @@ def configure_service(
     embedder: Embedder | None = None,
     vector_store_path: str | Path | None = None,
     embedding_model_key: str = "default",
+    vector_store_backend: str | None = None,
+    database_url: str | None = None,
 ) -> None:
     global _service
     _service = EvidenceRAGService(
@@ -43,6 +45,8 @@ def configure_service(
         embedder=embedder,
         vector_store_path=vector_store_path,
         embedding_model_key=embedding_model_key,
+        vector_store_backend=vector_store_backend,
+        database_url=database_url,
     )
 
 
@@ -61,6 +65,13 @@ def configure_service_from_env() -> None:
     if max_chars <= 0:
         raise RuntimeError("RAG_CHUNK_MAX_CHARS must be a positive integer")
 
+    backend = os.getenv("RAG_VECTOR_BACKEND", "sqlite").strip().lower()
+    if backend not in {"sqlite", "pgvector", "memory"}:
+        raise RuntimeError("RAG_VECTOR_BACKEND must be memory, sqlite, or pgvector")
+    database_url = os.getenv("RAG_DATABASE_URL")
+    if backend == "pgvector" and not database_url:
+        raise RuntimeError("RAG_DATABASE_URL is required when RAG_VECTOR_BACKEND=pgvector")
+
     corpus_dir = Path(os.getenv("RAG_CORPUS_DIR", "data/corpus"))
     chunks = load_corpus(corpus_dir, max_chars=max_chars)
     base_url = os.getenv("RAG_API_BASE_URL", "https://api.openai.com/v1").rstrip("/")
@@ -69,8 +80,14 @@ def configure_service_from_env() -> None:
         chunks,
         generator=configured_generator(),
         embedder=OpenAICompatibleEmbedder.from_env(),
-        vector_store_path=os.getenv("RAG_VECTOR_DB_PATH", "data/vectors.sqlite3"),
+        vector_store_path=(
+            os.getenv("RAG_VECTOR_DB_PATH", "data/vectors.sqlite3")
+            if backend == "sqlite"
+            else None
+        ),
         embedding_model_key=f"{base_url}|{embedding_model}",
+        vector_store_backend=backend,
+        database_url=database_url if backend == "pgvector" else None,
     )
 
 
