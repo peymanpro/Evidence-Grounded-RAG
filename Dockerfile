@@ -14,7 +14,7 @@ COPY src ./src
 COPY examples ./examples
 COPY corpus ./corpus
 
-RUN python -m pip install .
+RUN python -m pip install ".[pgvector]"
 
 USER app
 
