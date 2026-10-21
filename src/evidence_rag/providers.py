@@ -34,7 +34,7 @@ class OpenAICompatibleEmbedder:
         )
         with urlopen(request, timeout=60) as response:
             data = json.loads(response.read())
-        return [item["embedding"] for item in sorted(data["data"], key=lambda x: x["index"]) ]
+        return [item["embedding"] for item in sorted(data["data"], key=lambda x: x["index"])]
 
 
 class OpenAICompatibleGenerator:
