@@ -5,7 +5,6 @@ import os
 from collections.abc import Sequence
 from urllib.request import Request, urlopen
 
-from .embeddings import Embedder
 from .generation import Generator
 
 
@@ -18,7 +17,7 @@ class OpenAICompatibleEmbedder:
         self.base_url = base_url.rstrip("/")
 
     @classmethod
-    def from_env(cls) -> "OpenAICompatibleEmbedder":
+    def from_env(cls) -> OpenAICompatibleEmbedder:
         return cls(
             api_key=os.environ["RAG_API_KEY"],
             model=os.environ["RAG_EMBEDDING_MODEL"],
@@ -35,7 +34,7 @@ class OpenAICompatibleEmbedder:
         )
         with urlopen(request, timeout=60) as response:
             data = json.loads(response.read())
-        return [item["embedding"] for item in sorted(data["data"], key=lambda x: x["index"])]
+        return [item["embedding"] for item in sorted(data["data"], key=lambda x: x["index"]) ]
 
 
 class OpenAICompatibleGenerator:
@@ -54,7 +53,7 @@ class OpenAICompatibleGenerator:
         self.temperature = temperature
 
     @classmethod
-    def from_env(cls) -> "OpenAICompatibleGenerator":
+    def from_env(cls) -> OpenAICompatibleGenerator:
         return cls(
             api_key=os.environ["RAG_API_KEY"],
             model=os.environ["RAG_LLM_MODEL"],
