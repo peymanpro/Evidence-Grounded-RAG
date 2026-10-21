@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import os
+from pathlib import Path
 
 import psycopg
 import pytest
 
+from evidence_rag.embeddings import HashingEmbedder
 from evidence_rag.models import Chunk
 from evidence_rag.postgres_store import PostgresVectorStore
+
+
+class StubGenerator:
+    def generate(self, prompt: str) -> str:
+        return "Grounded answer [E1]"
 
 
 class CountingEmbedder:
@@ -117,7 +124,7 @@ def test_postgres_index_reembeds_when_model_identity_changes(database_dsn: str) 
 def test_runtime_selects_postgres_store_when_database_url_is_configured(
     database_dsn: str,
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     from evidence_rag import runtime
 
@@ -136,12 +143,12 @@ def test_runtime_selects_postgres_store_when_database_url_is_configured(
     monkeypatch.setattr(
         runtime.OpenAICompatibleEmbedder,
         "from_env",
-        classmethod(lambda cls: __import__("evidence_rag.embeddings", fromlist=["HashingEmbedder"]).HashingEmbedder()),
+        classmethod(lambda cls: HashingEmbedder()),
     )
     monkeypatch.setattr(
         runtime.OpenAICompatibleGenerator,
         "from_env",
-        classmethod(lambda cls: __import__(__name__, fromlist=["StubGenerator"]).StubGenerator()),
+        classmethod(lambda cls: StubGenerator()),
     )
 
     service = runtime.build_service_from_environment()
