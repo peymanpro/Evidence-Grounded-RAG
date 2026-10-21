@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import os
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,17 @@ def test_configure_service_requires_provider_settings(monkeypatch: pytest.Monkey
         api_module.configure_service_from_env()
 
 
+def test_pgvector_backend_requires_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_API_KEY", "test-key")
+    monkeypatch.setenv("RAG_EMBEDDING_MODEL", "test-embedding")
+    monkeypatch.setenv("RAG_LLM_MODEL", "test-chat")
+    monkeypatch.setenv("RAG_VECTOR_BACKEND", "pgvector")
+    monkeypatch.delenv("RAG_DATABASE_URL", raising=False)
+
+    with pytest.raises(RuntimeError, match="RAG_DATABASE_URL is required"):
+        api_module.configure_service_from_env()
+
+
 def test_lifespan_loads_corpus_and_configures_providers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -55,6 +67,42 @@ def test_lifespan_loads_corpus_and_configures_providers(
     monkeypatch.setenv("RAG_API_KEY", "test-key")
     monkeypatch.setenv("RAG_EMBEDDING_MODEL", "test-embedding")
     monkeypatch.setenv("RAG_LLM_MODEL", "test-chat")
+    monkeypatch.setenv("RAG_CORPUS_DIR", str(corpus_dir))
+    monkeypatch.setenv("RAG_VECTOR_BACKEND", "sqlite")
+    monkeypatch.setenv("RAG_VECTOR_DB_PATH", str(tmp_path / "vectors.sqlite3"))
+    monkeypatch.setattr(api_module, "configured_generator", lambda: StubGenerator())
+    monkeypatch.setattr(
+        api_module.OpenAICompatibleEmbedder,
+        "from_env",
+        classmethod(lambda cls: StubEmbedder()),
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/ask", json={"question": "What does the guide say?"})
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "Grounded answer [E1]"
+    assert response.json()["citations"][0]["chunk_id"] == "guide:0"
+
+
+def test_lifespan_loads_pgvector_backend(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database_url = os.getenv("RAG_TEST_DATABASE_URL")
+    if not database_url:
+        pytest.skip("RAG_TEST_DATABASE_URL is not configured")
+    corpus_dir = tmp_path / "corpus"
+    corpus_dir.mkdir()
+    (corpus_dir / "guide.md").write_text(
+        "# Guide\n\nPython supports reliable software.", encoding="utf-8"
+    )
+
+    monkeypatch.setattr(api_module, "_service", None)
+    monkeypatch.setenv("RAG_API_KEY", "test-key")
+    monkeypatch.setenv("RAG_EMBEDDING_MODEL", "test-embedding")
+    monkeypatch.setenv("RAG_LLM_MODEL", "test-chat")
+    monkeypatch.setenv("RAG_VECTOR_BACKEND", "pgvector")
+    monkeypatch.setenv("RAG_DATABASE_URL", database_url)
     monkeypatch.setenv("RAG_CORPUS_DIR", str(corpus_dir))
     monkeypatch.setattr(api_module, "configured_generator", lambda: StubGenerator())
     monkeypatch.setattr(
