@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
   pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      version: ${{ steps.release_version.outputs.version }}
+      release_needed: ${{ steps.release_version.outputs.release_needed }}
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -38,30 +41,37 @@ jobs:
       - name: Run tests
         run: pytest
 
-      - name: Verify release tag matches package version
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
+      - name: Determine release version
+        id: release_version
+        shell: bash
         run: |
-          python - <<'PY'
-          import os
+          VERSION="$(python - <<'PY'
           import tomllib
           from pathlib import Path
 
-          version = tomllib.loads(
-              Path("pyproject.toml").read_text(encoding="utf-8")
-          )["project"]["version"]
-          expected_tag = f"v{version}"
-          actual_tag = os.environ["RELEASE_TAG"]
-
-          if actual_tag != expected_tag:
-              raise SystemExit(
-                  f"Release tag {actual_tag!r} must match "
-                  f"the project version tag {expected_tag!r}."
-              )
-
-          print(f"Validated release tag: {actual_tag}")
+          print(
+              tomllib.loads(
+                  Path("pyproject.toml").read_text(encoding="utf-8")
+              )["project"]["version"]
+          )
           PY
+          )"
+
+          if [[ -z "$VERSION" ]]; then
+            echo "Could not determine project.version from pyproject.toml."
+            exit 1
+          fi
+
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "release_needed=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists; no duplicate release will be created."
+          else
+            echo "release_needed=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG does not exist; a release will be created after validation on main."
+          fi
 
       - name: Build source distribution and wheel
         run: python -m build --sdist --wheel
@@ -72,7 +82,7 @@ jobs:
           PYTHONPATH="$RUNNER_TEMP/wheel-smoke" python -c "import evidence_rag; print(evidence_rag.__file__)"
 
       - name: Upload release distributions
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.release_version.outputs.release_needed == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: python-distributions
@@ -83,7 +93,7 @@ jobs:
   publish:
     name: Publish GitHub Release
     needs: validate
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.validate.outputs.release_needed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -97,7 +107,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: ${{ github.ref_name }}
+          tag_name: v${{ needs.validate.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: v${{ needs.validate.outputs.version }}
           generate_release_notes: true
           files: dist/*
           fail_on_unmatched_files: true
