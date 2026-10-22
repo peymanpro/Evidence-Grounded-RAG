@@ -114,23 +114,6 @@ When `RAG_DATABASE_URL` is configured, embeddings and vectors are persisted acro
 
 **Current limitation:** this is not yet production-ready. The sample corpus is small, and the project still needs real-corpus benchmarks, authentication, rate limiting, operational monitoring, backups, and stronger failure handling before public exposure.
 
-## Automated GitHub releases
-
-The `Release` GitHub Actions workflow validates pull requests and pushes to `main` with Ruff and pytest, builds a Python source distribution and wheel, and smoke-tests the built wheel. Pushing a version-matched tag also creates a GitHub Release with generated release notes and both distribution files attached.
-
-To publish a release:
-
-1. Update `project.version` in `pyproject.toml` and merge that version change into `main`.
-2. Create a tag that exactly matches the package version. For example, if the version is `0.1.1`, use `v0.1.1`.
-3. Push the tag:
-
-   ```bash
-   git tag v0.1.1
-   git push origin v0.1.1
-   ```
-
-The workflow rejects a tag whose version does not match `pyproject.toml`, and publishes only after validation and the package build succeed. This automation creates a **GitHub Release**; it does not upload the package to PyPI.
-
 ## Project structure
 
 - `src/evidence_rag/models.py` — core evidence models
