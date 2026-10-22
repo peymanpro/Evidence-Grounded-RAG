@@ -24,7 +24,7 @@ services:
       database:
         condition: service_healthy
     ports:
-      - "${RAG_PORT:-8000}:8000"
+      - "127.0.0.1:${RAG_PORT:-8000}:8000"
     environment:
       RAG_API_KEY: ${RAG_API_KEY:-}
       RAG_API_BASE_URL: ${RAG_API_BASE_URL:-https://api.openai.com/v1}
@@ -35,6 +35,13 @@ services:
       RAG_VECTOR_TABLE_PREFIX: ${RAG_VECTOR_TABLE_PREFIX:-rag}
     volumes:
       - ./data/knowledge:/app/data/knowledge:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     init: true
 
